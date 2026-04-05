@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>USPACE 違規停車場管理儀表板</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css"/>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Microsoft JhengHei",sans-serif;background:#0d1117;color:#e6edf3;line-height:1.5;font-size:13px}
+.wrap{max-width:1140px;margin:0 auto;padding:16px 20px}
+.hdr{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:8px}
+.hdr h1{font-size:20px;font-weight:700;background:linear-gradient(90deg,#00d4aa,#58a6ff);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.hdr .sub{font-size:11px;color:#6e7681}
+.glow{height:1px;background:linear-gradient(90deg,transparent,#00d4aa,transparent);margin-bottom:16px;opacity:.4}
+.clock{font-family:'Orbitron',monospace;font-size:18px;font-weight:700;color:#00d4aa;letter-spacing:2px}
+.conn{font-size:11px;color:#3fb950}
+.conn::before{content:'';display:inline-block;width:6px;height:6px;border-radius:50%;background:#3fb950;box-shadow:0 0 6px #3fb950;margin-right:5px;vertical-align:middle}
+.tabs{display:flex;border-bottom:1px solid #30363d;margin-bottom:16px;overflow-x:auto}
+.tabs button{padding:10px 18px;font-size:13px;cursor:pointer;border:none;background:none;color:#6e7681;border-bottom:2px solid transparent;white-space:nowrap}
+.tabs button:hover{color:#8b949e}
+.tabs button.on{color:#00d4aa;font-weight:500;border-bottom-color:#00d4aa;text-shadow:0 0 10px rgba(0,212,170,.3)}
+.PNL{display:none}.PNL.on{display:block}
+.g4{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px}
+.kpi{background:#161b22;border-radius:10px;padding:16px 18px;border:1px solid #30363d;position:relative}
+.kpi .lb{font-size:11px;color:#8b949e;margin-bottom:6px}
+.kpi .nm{font-family:'Orbitron',monospace;font-size:28px;font-weight:700;letter-spacing:1px}
+.kpi .dt{font-size:10px;margin-top:6px;display:inline-block;padding:2px 8px;border-radius:4px}
+.k1 .nm{color:#ff6b6b;text-shadow:0 0 14px rgba(255,107,107,.3)}
+.k2 .nm{color:#ffc107;text-shadow:0 0 14px rgba(255,193,7,.3)}
+.k3 .nm{color:#bc8cff;text-shadow:0 0 14px rgba(188,140,255,.3)}
+.k4 .nm{color:#3fb950;text-shadow:0 0 14px rgba(63,185,80,.3)}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:20px}
+.crd{background:#161b22;border-radius:10px;padding:16px;border:1px solid #30363d}
+.ct{font-size:13px;font-weight:500;margin-bottom:10px}
+.ct::before{content:'';display:inline-block;width:3px;height:13px;border-radius:2px;background:#00d4aa;margin-right:8px;vertical-align:middle}
+.cb{position:relative;height:220px}
+#mapDiv{height:400px;border-radius:10px;border:1px solid #30363d;margin-bottom:18px;background:#161b22}
+.mc{display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap}
+.mc button{padding:4px 14px;border-radius:6px;font-size:11px;cursor:pointer;border:1px solid #30363d;background:#1c2333;color:#8b949e}
+.mc button:hover{border-color:#484f58;color:#e6edf3}
+.mc button.on{border-color:#00d4aa;background:rgba(0,212,170,.08);color:#00d4aa;box-shadow:0 0 8px rgba(0,212,170,.12)}
+.sb{display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap}
+.sb input[type=text]{flex:1;min-width:180px;padding:8px 14px;border:1px solid #30363d;border-radius:8px;font-size:12px;background:#1c2333;color:#e6edf3;outline:none}
+.sb input[type=text]:focus{border-color:#00d4aa;box-shadow:0 0 6px rgba(0,212,170,.15)}
+.sb select{padding:8px 12px;border:1px solid #30363d;border-radius:8px;font-size:12px;background:#1c2333;color:#e6edf3}
+.rc{font-size:11px;color:#6e7681;margin-bottom:6px}
+table{width:100%;border-collapse:separate;border-spacing:0;background:#161b22;border-radius:10px;overflow:hidden;border:1px solid #30363d}
+thead th{background:#21283b;color:#8b949e;padding:10px 14px;font-size:11px;font-weight:500;text-align:left;white-space:nowrap;border-bottom:1px solid #30363d}
+tbody td{padding:8px 14px;font-size:12px;border-bottom:1px solid rgba(48,54,61,.4);color:#e6edf3}
+tbody tr:last-child td{border-bottom:none}
+tbody tr:hover{background:#1c2333}
+.tg{display:inline-block;padding:2px 10px;border-radius:5px;font-size:10px;font-weight:500;white-space:nowrap}
+.t-nf{background:rgba(255,107,107,.12);color:#ff6b6b}
+.t-ex{background:rgba(255,50,50,.15);color:#ff4444}
+.t-ep{background:rgba(255,193,7,.12);color:#ffc107}
+.t-ok{background:rgba(63,185,80,.12);color:#3fb950}
+.tri{background:#161b22;border-radius:8px;padding:10px 14px;border:1px solid #30363d;margin-bottom:4px}
+.tri:hover{border-color:#484f58}
+.trh{display:flex;justify-content:space-between;align-items:center;cursor:pointer}
+.trn{font-size:13px;font-weight:500}.trm{font-size:11px;color:#6e7681;margin-left:8px}
+.trb{margin-top:10px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;padding-top:10px;border-top:1px solid #30363d}
+.trb label{font-size:10px;color:#6e7681;display:block;margin-bottom:2px}
+.trb input,.trb select,.trb textarea{width:100%;padding:6px 10px;font-size:11px;border:1px solid #30363d;border-radius:6px;background:#1c2333;color:#e6edf3;outline:none}
+.trb input:focus,.trb select:focus,.trb textarea:focus{border-color:#00d4aa}
+.trb textarea{min-height:36px;resize:vertical}.trf{grid-column:1/-1}
+.eb{font-size:10px;padding:3px 12px;border-radius:5px;cursor:pointer;border:1px solid #30363d;background:#1c2333;color:#8b949e}
+.eb:hover{border-color:#00d4aa;color:#00d4aa}
+.sph{padding:8px 14px;border-radius:8px;background:#1c2333;font-weight:600;font-size:12px;margin:12px 0 8px}
+.sst{display:flex;gap:10px;padding:5px 0 5px 16px;font-size:12px;color:#8b949e}
+.sst b{font-weight:500;color:#e6edf3}
+.ssl{min-width:24px;font-weight:700;flex-shrink:0}
+.inb{padding:12px 16px;border-radius:8px;background:rgba(0,212,170,.06);border-left:3px solid #00d4aa;font-size:11px;color:#00d4aa;line-height:1.6;margin-top:14px}
+.rkr{display:flex;align-items:center;gap:8px;padding:8px 12px;border-radius:6px;margin-bottom:3px;font-size:12px;background:#1c2333;border:1px solid #30363d;cursor:pointer}
+.rkr:hover{border-color:#484f58}
+.rkn{font-weight:500;min-width:50px}.rkb{flex:1;height:16px;background:#21283b;border-radius:3px;overflow:hidden}
+.rkf{height:100%;border-radius:3px}.rkv{min-width:70px;text-align:right;font-size:11px;color:#8b949e}
+.pbtn{position:fixed;bottom:20px;right:20px;padding:10px 24px;background:linear-gradient(135deg,#00d4aa,#58a6ff);color:#0d1117;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;box-shadow:0 2px 12px rgba(0,212,170,.3);z-index:999}
+.pbtn:hover{opacity:.9}
+#printArea{display:none}
+@media print{
+body{background:#fff!important;color:#222!important}
+.wrap{padding:10px;max-width:100%}
+.tabs,.sb,.mc,.eb,.pbtn,.glow{display:none!important}
+.PNL{display:none!important}
+#printArea{display:block!important;background:#fff!important}
+#printArea *{color:#222!important;border-color:#ccc!important}
+#printArea .kpi{background:#f5f5f5!important;border:1px solid #ccc!important}
+#printArea .kpi .nm{text-shadow:none!important;-webkit-text-fill-color:#222!important;background:none!important}
+#printArea table{background:#fff!important}
+#printArea thead th{background:#eee!important;color:#222!important}
+#mapDiv{display:none!important}
+}
+@media(max-width:768px){.g4{grid-template-columns:repeat(2,1fr)}.g2{grid-template-columns:1fr}.trb{grid-template-columns:1fr 1fr}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<div class="hdr">
+<div><h1>USPACE 違規停車場管理儀表板</h1><div class="sub">台北市停車場登記 x USPACE 月租專區 — 自動比對 / 分類 / 追蹤 / 報告</div></div>
+<div style="display:flex;align-items:center;gap:12px"><span class="clock" id="clk"></span><span class="conn">正常連線</span></div>
+</div>
+<div class="glow"></div>
+<div class="tabs" id="tabBar"></div>
+
+<div id="pDash" class="PNL on"></div>
+<div id="pMap" class="PNL"></div>
+<div id="pDetail" class="PNL"></div>
+<div id="pTrack" class="PNL"></div>
+<div id="pSop" class="PNL"></div>
+<div id="printArea"></div>
+</div>
+<button class="pbtn" id="printBtn">產出簡報給長官</button>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/leaflet.heat@0.2.0/dist/leaflet-heat.js"></script>
+<script>
+var D=[{"n":"USPACE台北君悅酒店","d":"信義區","t":"expired","m":"台北君悅酒店停車場","e":"2026-04-28","o":"豐隆大飯店股份有限公司","s":78,"lat":25.0359305,"lng":121.563132,"approx":false},{"n":"Four Seasons台大","d":"中正區","t":"expired","m":"Four Seasons 台大停車場","e":"2025-01-31","o":"傅定烽","s":85,"lat":25.034230828775325,"lng":121.51040017208356,"approx":true},{"n":"台北橋下鄰近車位","d":"大同區","t":"expired","m":"USPACE台北橋下鄰近車位","e":"2023-09-30","o":"悠勢科技股份有限公司","s":90,"lat":25.059400469093905,"lng":121.50857137181039,"approx":true},{"n":"USPACE光復大廈平面車位","d":"大安區","t":"expired","m":"大安光復平面停車場","e":"2025-09-30","o":"俥亭停車事業股份有限公司","s":65,"lat":25.0442518,"lng":121.5556384,"approx":false},{"n":"文山福興場","d":"文山區","t":"expired","m":"文山興隆平面停車場","e":"2026-04-30","o":"車戰有限公司","s":55,"lat":24.9949875,"lng":121.557402,"approx":false},{"n":"文山萬隆月租車位","d":"文山區","t":"expired","m":"文山興隆平面停車場","e":"2026-04-30","o":"車戰有限公司","s":50,"lat":24.9949875,"lng":121.557402,"approx":false},{"n":"建成大廈二場","d":"大安區","t":"expiring","m":"建成大廈平面停車場","e":"2026-05-31","o":"悠勢科技股份有限公司","s":70,"lat":25.030783539426626,"lng":121.54582719179878,"approx":true},{"n":"USPACE崇德街停車場","d":"信義區","t":"expiring","m":"USPACE 崇德街停車場","e":"2026-06-30","o":"悠勢科技股份有限公司","s":95,"lat":25.03927487308328,"lng":121.56539102132207,"approx":true},{"n":"幸安市場鄰近車位","d":"中正區","t":"not_found","m":"","e":"","o":"","s":35,"lat":25.030750749114965,"lng":121.51047675551101,"approx":true},{"n":"中正博愛路月租車位","d":"中正區","t":"not_found","m":"","e":"","o":"","s":30,"lat":25.027498207596857,"lng":121.51808568460966,"approx":true},{"n":"敦化國中鄰近車梯車位","d":"松山區","t":"not_found","m":"","e":"","o":"","s":36,"lat":25.042424575514943,"lng":121.553181402411,"approx":true},{"n":"民生圓環建成花園","d":"松山區","t":"not_found","m":"","e":"","o":"","s":27,"lat":25.05239815100447,"lng":121.55871906368967,"approx":true},{"n":"ILLUME茹曦酒店","d":"松山區","t":"not_found","m":"","e":"","o":"","s":35,"lat":25.045527049952653,"lng":121.55942825094202,"approx":true},{"n":"USPACE吉祥平面停車場","d":"松山區","t":"not_found","m":"","e":"","o":"","s":23,"lat":25.054950887306845,"lng":121.55010398015486,"approx":true},{"n":"延吉街機車場(合作金庫旁)","d":"大安區","t":"not_found","m":"","e":"","o":"","s":35,"lat":25.031893108029326,"lng":121.54617023031982,"approx":true},{"n":"師大功德站(40巷)","d":"大安區","t":"not_found","m":"","e":"","o":"","s":36,"lat":25.02444400826429,"lng":121.537487671997,"approx":true},{"n":"師大禮居月租車位","d":"大安區","t":"not_found","m":"","e":"","o":"","s":33,"lat":25.034315409155308,"lng":121.54038551272181,"approx":true},{"n":"永吉豐 和苑三井花園飯店","d":"大安區","t":"not_found","m":"","e":"","o":"","s":28,"lat":25.020483933494084,"lng":121.53654746202935,"approx":true},{"n":"芙蓉大樓1F平面車位","d":"大安區","t":"not_found","m":"","e":"","o":"","s":35,"lat":25.03255990986156,"lng":121.54465961650187,"approx":true},{"n":"廣州街觀光夜市站","d":"萬華區","t":"not_found","m":"","e":"","o":"","s":40,"lat":25.03991405237239,"lng":121.5036757085871,"approx":true},{"n":"嵜本吐司旁地下月租車位","d":"信義區","t":"not_found","m":"","e":"","o":"","s":20,"lat":25.033579649463277,"lng":121.57956985222367,"approx":true},{"n":"葫蘆堵市場鄰近車位","d":"士林區","t":"not_found","m":"","e":"","o":"","s":40,"lat":25.086056550035334,"lng":121.52083265010037,"approx":true},{"n":"芝玉路車位","d":"士林區","t":"not_found","m":"","e":"","o":"","s":33,"lat":25.09327047462805,"lng":121.52189631603783,"approx":true},{"n":"社子通河西街二段29號旁","d":"士林區","t":"not_found","m":"","e":"","o":"","s":39,"lat":25.093787310404974,"lng":121.52123763432411,"approx":true},{"n":"社子社正路87巷車位","d":"士林區","t":"not_found","m":"","e":"","o":"","s":43,"lat":25.09127314937944,"lng":121.51273319013849,"approx":true},{"n":"北投綠波廊月租車位","d":"北投區","t":"not_found","m":"","e":"","o":"","s":30,"lat":25.127646372410425,"lng":121.49463020741764,"approx":true},{"n":"葫洲捷運站山邊車位","d":"內湖區","t":"not_found","m":"","e":"","o":"","s":40,"lat":25.062276671630777,"lng":121.58472465418177,"approx":true},{"n":"大湖駕訓班鄰近車位","d":"內湖區","t":"not_found","m":"","e":"","o":"","s":30,"lat":25.062616022870554,"lng":121.58544757764976,"approx":true},{"n":"C10世正經貿大樓","d":"南港區","t":"not_found","m":"","e":"","o":"","s":41,"lat":25.04217095110823,"lng":121.60383731486351,"approx":true},{"n":"文山萬盛街月租場","d":"文山區","t":"not_found","m":"","e":"","o":"","s":27,"lat":24.98792289547387,"lng":121.56535211249233,"approx":true},{"n":"USPACE晶華酒店停車場","d":"中山區","t":"valid","m":"USPACE晶華酒店附設停車場","e":"2028-07-31","o":"悠勢科技股份有限公司","s":92,"lat":25.054321,"lng":121.5253094,"approx":false},{"n":"USPACE中崙旗艦場","d":"中山區","t":"valid","m":"USPACE中崙旗艦一場","e":"2029-05-15","o":"悠勢科技股份有限公司","s":80,"lat":25.0465573,"lng":121.5398576,"approx":false},{"n":"三寶大樓地下停車位","d":"中山區","t":"valid","m":"USPACE三寶大樓地下停車場","e":"2029-04-30","o":"悠勢科技股份有限公司","s":85,"lat":25.0602963,"lng":121.5360728,"approx":false},{"n":"USPACE長春路龍江路臨時平面停車場","d":"中山區","t":"valid","m":"長春路龍江路臨時平面停車場","e":"2027-08-31","o":"悠勢科技股份有限公司","s":88,"lat":25.0547186,"lng":121.5400446,"approx":false},{"n":"USPACE電信大樓停車場","d":"大安區","t":"valid","m":"USPACE電信大樓停車場","e":"2028-06-30","o":"悠勢科技股份有限公司","s":100,"lat":25.0262265,"lng":121.5545959,"approx":false},{"n":"USPACE仁愛帝寶站","d":"大安區","t":"valid","m":"USPACE仁愛帝寶停車場","e":"2028-03-31","o":"悠勢科技股份有限公司","s":88,"lat":25.039316,"lng":121.5374895,"approx":false},{"n":"羅馬東區地下停車場","d":"大安區","t":"valid","m":"羅馬東區地下停車場","e":"2029-09-26","o":"悠勢科技股份有限公司","s":100,"lat":25.0421168,"lng":121.5504543,"approx":false},{"n":"復興萬象三階場","d":"大安區","t":"valid","m":"USPACE萬象三階停車場","e":"2027-09-30","o":"悠勢科技股份有限公司","s":65,"lat":25.0435591,"lng":121.5430438,"approx":false},{"n":"USPACE正氣橋下平面停車場","d":"信義區","t":"valid","m":"正氣橋下平面停車場","e":"2027-08-31","o":"悠勢科技股份有限公司","s":90,"lat":25.0474765,"lng":121.5680624,"approx":false},{"n":"宏泰交易一號廣場","d":"信義區","t":"valid","m":"USPACE交易一號停車場","e":"2026-12-31","o":"悠勢科技股份有限公司","s":60,"lat":25.029271645152786,"lng":121.5789864734034,"approx":true},{"n":"宏泰交易二號廣場","d":"信義區","t":"valid","m":"USPACE交易二號停車場","e":"2028-03-30","o":"悠勢科技股份有限公司","s":60,"lat":25.035368566163946,"lng":121.57374609609067,"approx":true},{"n":"宏泰A19購物中心","d":"信義區","t":"valid","m":"USPACE 宏泰A19購物中心停車場","e":"2027-12-31","o":"悠勢科技股份有限公司","s":75,"lat":25.0352289,"lng":121.5675718,"approx":false},{"n":"至誠公園鄰近停車場","d":"士林區","t":"valid","m":"至誠公園鄰近停車場","e":"2027-04-30","o":"悠勢科技股份有限公司","s":100,"lat":25.08273821837117,"lng":121.5236660287672,"approx":true},{"n":"天母棒球場德行東路車位","d":"士林區","t":"valid","m":"USPACE天母棒球場德行東路車位","e":"2028-10-31","o":"悠勢科技股份有限公司","s":90,"lat":25.112231,"lng":121.535898,"approx":false},{"n":"USPACE北投晶泉丰旅停車場","d":"北投區","t":"valid","m":"USPACE北投晶泉丰旅停車場","e":"2029-09-15","o":"悠勢科技股份有限公司","s":100,"lat":25.1378351,"lng":121.5044096,"approx":false},{"n":"石牌陽信大樓站","d":"北投區","t":"valid","m":"石牌陽信大樓停車場","e":"2028-02-29","o":"悠勢科技股份有限公司","s":80,"lat":25.1137142,"lng":121.5124607,"approx":false},{"n":"USPACE正大樂富停車場","d":"北投區","t":"valid","m":"USPACE 正大樂富停車場","e":"2027-10-31","o":"悠勢科技股份有限公司","s":95,"lat":25.10435,"lng":121.5144356,"approx":false},{"n":"USPACE國家企業中心","d":"松山區","t":"valid","m":"USPACE 國家企業中心停車場","e":"2027-10-31","o":"悠勢科技股份有限公司","s":90,"lat":25.0508229,"lng":121.5641835,"approx":false},{"n":"USPACE台新人壽大樓","d":"松山區","t":"valid","m":"USPACE 台新人壽大樓停車場","e":"2030-09-13","o":"悠勢科技股份有限公司","s":88,"lat":25.04461443990019,"lng":121.55607128706814,"approx":true},{"n":"USPACE健康1區社會住宅地下停車場","d":"松山區","t":"valid","m":"健康1區社會住宅地下停車場","e":"2028-12-31","o":"悠勢科技股份有限公司","s":90,"lat":25.0545856,"lng":121.5642009,"approx":false},{"n":"USPACE健康2區社會住宅地下停車場","d":"松山區","t":"valid","m":"健康2區社會住宅地下停車場","e":"2028-12-31","o":"悠勢科技股份有限公司","s":90,"lat":25.0546178,"lng":121.5655852,"approx":false},{"n":"USPACE西門峨嵋站-B2機車停車場","d":"萬華區","t":"valid","m":"USPACE西門峨嵋站","e":"2030-07-24","o":"悠勢科技股份有限公司","s":70,"lat":25.042832373610185,"lng":121.50223999615767,"approx":true},{"n":"SCI瑞光大樓","d":"內湖區","t":"valid","m":"USPACE SCI 瑞光大樓停車場","e":"2027-02-28","o":"悠勢科技股份有限公司","s":75,"lat":25.0806253,"lng":121.5671924,"approx":false},{"n":"USPACE倫敦科技大樓","d":"內湖區","t":"valid","m":"USPACE 倫敦科技總部附設停車場","e":"2027-07-31","o":"悠勢科技股份有限公司","s":70,"lat":25.080994,"lng":121.5632632,"approx":false},{"n":"研究院路停車場","d":"南港區","t":"valid","m":"USPACE南港研究院路停車場","e":"2027-05-31","o":"上御亭股份有限公司","s":75,"lat":25.051339,"lng":121.6162585,"approx":false}];
+
+var TL={not_found:"未登記",expired:"登記證已過期",expiring:"即將到期",valid:"合規有效"};
+var TC={not_found:"t-nf",expired:"t-ex",expiring:"t-ep",valid:"t-ok"};
+var MC={not_found:"#ff6b6b",expired:"#ff4444",expiring:"#ffc107",valid:"#3fb950"};
+var STS=[{k:"new",l:"新案件",c:"#ff6b6b"},{k:"sent",l:"已發函",c:"#ffc107"},{k:"wait",l:"等待期限中",c:"#58a6ff"},{k:"rereg",l:"已重新申請",c:"#3fb950"},{k:"cease",l:"已停止營業",c:"#00d4aa"},{k:"fine",l:"已開罰",c:"#ff4444"},{k:"mon",l:"罰款後監控中",c:"#bc8cff"}];
+var SL={};STS.forEach(function(s){SL[s.k]=s.l});
+var SC={};STS.forEach(function(s){SC[s.k]=s.c});
+var ts=[];D.forEach(function(d,i){if(d.t!=="valid")ts.push({n:d.n,d:d.d,t:d.t,m:d.m,e:d.e,o:d.o,s:d.s,lat:d.lat,lng:d.lng,id:i,st:"new",nd:"",dl:"",cr:"",fd:"",amt:"",hd:"",nt:""})});
+var openId=null,trackFilt="all",mapObj=null,mapMarkers=[],heatLayer=null,heatOn=false;
+Chart.defaults.color="#8b949e";Chart.defaults.borderColor="rgba(48,54,61,.5)";
+
+// Clock
+function tick(){var e=document.getElementById("clk");if(e)e.textContent=new Date().toTimeString().slice(0,8)}
+tick();setInterval(tick,1000);
+
+// Tabs
+var tabDefs=[{id:"pDash",label:"儀表板總覽"},{id:"pMap",label:"地圖分析"},{id:"pDetail",label:"明細查詢"},{id:"pTrack",label:"違規追蹤"},{id:"pSop",label:"完整 SOP"}];
+var tabBar=document.getElementById("tabBar");
+tabDefs.forEach(function(t,i){
+  var btn=document.createElement("button");
+  btn.textContent=t.label;
+  btn.setAttribute("data-p",t.id);
+  if(i===0)btn.className="on";
+  btn.addEventListener("click",function(){
+    document.querySelectorAll(".PNL").forEach(function(p){p.classList.remove("on")});
+    document.querySelectorAll(".tabs button").forEach(function(b){b.classList.remove("on")});
+    document.getElementById(this.getAttribute("data-p")).classList.add("on");
+    this.classList.add("on");
+    if(this.getAttribute("data-p")==="pMap")initMap();
+  });
+  tabBar.appendChild(btn);
+});
+
+// ===== DASHBOARD =====
+var vio=D.filter(function(d){return d.t!=="valid"});
+var nf=D.filter(function(d){return d.t==="not_found"}).length;
+var ex=D.filter(function(d){return d.t==="expired"}).length;
+var ep=D.filter(function(d){return d.t==="expiring"}).length;
+var dm={};D.forEach(function(d){if(!dm[d.d])dm[d.d]={ok:0,v:0};d.t==="valid"?dm[d.d].ok++:dm[d.d].v++});
+var ds=Object.entries(dm).sort(function(a,b){return b[1].v-a[1].v});
+var mx=1;ds.forEach(function(d){if(d[1].v>mx)mx=d[1].v});
+
+var dashH='<div class="g4">';
+dashH+='<div class="kpi k1"><div class="lb">違規停車場數量</div><div class="nm">'+vio.length+'</div><div class="dt" style="background:rgba(255,107,107,.1);color:#ff6b6b">佔全部 '+D.length+' 個場站</div></div>';
+dashH+='<div class="kpi k2"><div class="lb">違規率</div><div class="nm">'+Math.round(vio.length/D.length*100)+'%</div><div class="dt" style="background:rgba(255,193,7,.1);color:#ffc107">首次掃描基準值</div></div>';
+dashH+='<div class="kpi k3"><div class="lb">本週新增違規</div><div class="nm">'+vio.length+'</div><div class="dt" style="background:rgba(188,140,255,.1);color:#bc8cff">首次掃描基準值</div></div>';
+dashH+='<div class="kpi k4"><div class="lb">已改善數量</div><div class="nm">0</div><div class="dt" style="background:rgba(63,185,80,.1);color:#3fb950">尚無改善紀錄</div></div>';
+dashH+='</div>';
+dashH+='<div class="g2"><div class="crd"><div class="ct">每週違規數量趨勢</div><div class="cb"><canvas id="c1"></canvas></div></div>';
+dashH+='<div class="crd"><div class="ct">各類型違規趨勢</div><div class="cb"><canvas id="c2"></canvas></div></div></div>';
+dashH+='<div class="g2"><div class="crd"><div class="ct">違規類型比例</div><div class="cb"><canvas id="c3"></canvas></div></div>';
+dashH+='<div class="crd"><div class="ct">各行政區違規分布</div><div class="cb"><canvas id="c4"></canvas></div></div></div>';
+dashH+='<div class="crd" style="margin-bottom:20px"><div class="ct">行政區違規排行榜</div><div id="rk">';
+ds.forEach(function(d){
+  var name=d[0],v=d[1].v,total=d[1].v+d[1].ok,rate=Math.round(v/total*100);
+  dashH+='<div class="rkr" data-dist="'+name+'"><div class="rkn">'+name+'</div><div class="rkb"><div class="rkf" style="width:'+Math.round(v/mx*100)+'%;background:linear-gradient(90deg,#ff6b6b,#ff4444)"></div></div><div class="rkv"><span style="color:#ff6b6b">'+v+'</span> / '+total+' ('+rate+'%)</div></div>';
+});
+dashH+='</div></div>';
+document.getElementById("pDash").innerHTML=dashH;
+
+// Ranking click -> jump to map
+document.querySelectorAll(".rkr").forEach(function(el){
+  el.addEventListener("click",function(){
+    var dist=this.getAttribute("data-dist");
+    document.querySelectorAll(".PNL").forEach(function(p){p.classList.remove("on")});
+    document.querySelectorAll(".tabs button").forEach(function(b){b.classList.remove("on")});
+    document.getElementById("pMap").classList.add("on");
+    document.querySelectorAll(".tabs button").forEach(function(b){if(b.getAttribute("data-p")==="pMap")b.classList.add("on")});
+    initMap();
+    setTimeout(function(){
+      var pts=D.filter(function(x){return x.d===dist});
+      if(pts.length&&mapObj){var b=L.latLngBounds(pts.map(function(p){return[p.lat,p.lng]}));mapObj.fitBounds(b.pad(0.3))}
+    },500);
+  });
+});
+
+// Charts
+var wk=["W10","W11","W12","W13","W14"];
+new Chart(document.getElementById("c1"),{type:"line",data:{labels:wk,datasets:[{label:"違規總數",data:[0,0,0,0,vio.length],borderColor:"#00d4aa",backgroundColor:"rgba(0,212,170,.1)",fill:true,tension:.3,pointRadius:4,pointBackgroundColor:"#00d4aa",pointBorderColor:"#0d1117",pointBorderWidth:2}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true},x:{grid:{display:false}}}}});
+new Chart(document.getElementById("c2"),{type:"line",data:{labels:wk,datasets:[{label:"未登記",data:[0,0,0,0,nf],borderColor:"#bc8cff",tension:.3,pointRadius:3,pointBackgroundColor:"#bc8cff"},{label:"已過期",data:[0,0,0,0,ex],borderColor:"#ff6b6b",tension:.3,pointRadius:3,pointBackgroundColor:"#ff6b6b"},{label:"即將到期",data:[0,0,0,0,ep],borderColor:"#ffc107",tension:.3,pointRadius:3,pointBackgroundColor:"#ffc107"}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:"bottom",labels:{boxWidth:10,font:{size:10}}}},scales:{y:{beginAtZero:true},x:{grid:{display:false}}}}});
+new Chart(document.getElementById("c3"),{type:"doughnut",data:{labels:["未登記 ("+nf+")","已過期 ("+ex+")","即將到期 ("+ep+")","合規 ("+(D.length-vio.length)+")"],datasets:[{data:[nf,ex,ep,D.length-vio.length],backgroundColor:["#bc8cff","#ff6b6b","#ffc107","#3fb950"],borderWidth:0,hoverOffset:4}]},options:{responsive:true,maintainAspectRatio:false,cutout:"55%",plugins:{legend:{position:"bottom",labels:{boxWidth:10,font:{size:10},padding:8}}}}});
+new Chart(document.getElementById("c4"),{type:"bar",data:{labels:ds.map(function(d){return d[0]}),datasets:[{label:"違規",data:ds.map(function(d){return d[1].v}),backgroundColor:"rgba(255,107,107,.7)",borderRadius:3,barPercentage:.7},{label:"合規",data:ds.map(function(d){return d[1].ok}),backgroundColor:"rgba(63,185,80,.5)",borderRadius:3,barPercentage:.7}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:"bottom",labels:{boxWidth:10,font:{size:10}}}},scales:{x:{stacked:true,grid:{display:false},ticks:{font:{size:9}}},y:{stacked:true,beginAtZero:true}}}});
+
+// ===== MAP =====
+var mapH='<div class="mc" id="mapCtrl"></div><div id="mapDiv"></div>';
+document.getElementById("pMap").innerHTML=mapH;
+
+function initMap(){
+  if(mapObj)return;
+  if(typeof L==="undefined"){document.getElementById("mapDiv").innerHTML='<div style="display:flex;align-items:center;justify-content:center;height:400px;color:#8b949e;text-align:center;padding:20px">地圖需要網路連線載入外部資源</div>';return}
+  mapObj=L.map("mapDiv").setView([25.042,121.545],12);
+  L.tileLayer("https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png",{maxZoom:19,attribution:"CartoDB"}).on("tileerror",function(){
+      L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png",{maxZoom:19}).addTo(mapObj);
+    }).addTo(mapObj);
+  setTimeout(function(){mapObj.invalidateSize()},300);
+  var hc=[];D.forEach(function(d){if(d.t!=="valid"&&d.lat)hc.push([d.lat,d.lng,.8])});
+  heatLayer=L.heatLayer(hc,{radius:25,blur:15,maxZoom:17,gradient:{0.2:"#58a6ff",0.4:"#00d4aa",0.6:"#ffc107",0.8:"#ff6b6b",1:"#ff4444"}});
+  showMarkers("all");
+  // Build map control buttons
+  var types=[["all","全部"],["not_found","未登記"],["expired","已過期"],["expiring","即將到期"],["valid","合規"],["heat","熱點分析"]];
+  var ctrl=document.getElementById("mapCtrl");
+  types.forEach(function(t){
+    var btn=document.createElement("button");
+    btn.textContent=t[1];btn.setAttribute("data-mf",t[0]);
+    if(t[0]==="all")btn.className="on";
+    btn.addEventListener("click",function(){
+      var val=this.getAttribute("data-mf");
+      if(val==="heat"){heatOn=!heatOn;if(heatOn)heatLayer.addTo(mapObj);else mapObj.removeLayer(heatLayer);this.classList.toggle("on")}
+      else{ctrl.querySelectorAll("button").forEach(function(b){if(b.getAttribute("data-mf")!=="heat")b.classList.remove("on")});this.classList.add("on");showMarkers(val)}
+    });
+    ctrl.appendChild(btn);
+  });
+}
+function showMarkers(filter){
+  if(!mapObj)return;
+  mapMarkers.forEach(function(m){mapObj.removeLayer(m)});mapMarkers=[];
+  var list=filter==="all"?D:D.filter(function(d){return d.t===filter});
+  list.forEach(function(d){
+    if(!d.lat)return;
+    var c=MC[d.t]||"#888";
+    var icon=L.divIcon({className:"",html:'<div style="width:12px;height:12px;border-radius:50%;background:'+c+';border:2px solid rgba(13,17,23,.8);box-shadow:0 0 8px '+c+'80"></div>',iconSize:[12,12],iconAnchor:[6,6]});
+    var m=L.marker([d.lat,d.lng],{icon:icon}).addTo(mapObj);
+    m.bindPopup('<div style="font-size:12px;line-height:1.6;min-width:200px"><b>'+d.n+'</b><br>'+d.d+' | '+TL[d.t]+(d.m?'<br>登記：'+d.m:'')+(d.e?'<br>到期：'+d.e:'')+(d.o?'<br>經營者：'+d.o:'')+'</div>');
+    mapMarkers.push(m);
+  });
+}
+
+// ===== DETAIL TABLE =====
+var detH='<div class="sb"><input type="text" id="sq" placeholder="搜尋停車場名稱、經營者、行政區..."><select id="ft"><option value="all">全部類型</option><option value="not_found">未登記</option><option value="expired">已過期</option><option value="expiring">即將到期</option><option value="valid">合規有效</option></select><select id="fv"><option value="all">全部</option><option value="yes">僅違規</option><option value="no">僅合規</option></select></div><div class="rc" id="rc2"></div><table><thead><tr><th>USPACE 名稱</th><th>行政區</th><th>違規類型</th><th>登記名稱</th><th>到期日</th><th>經營者</th><th>配對</th></tr></thead><tbody id="tb2"></tbody></table>';
+document.getElementById("pDetail").innerHTML=detH;
+
+function renderTable(){
+  var q=document.getElementById("sq").value.toLowerCase();
+  var ft=document.getElementById("ft").value;
+  var fv=document.getElementById("fv").value;
+  var list=D.slice();
+  if(q)list=list.filter(function(d){return d.n.toLowerCase().indexOf(q)>=0||d.d.indexOf(q)>=0||(d.m&&d.m.toLowerCase().indexOf(q)>=0)||(d.o&&d.o.toLowerCase().indexOf(q)>=0)});
+  if(ft!=="all")list=list.filter(function(d){return d.t===ft});
+  if(fv==="yes")list=list.filter(function(d){return d.t!=="valid"});
+  if(fv==="no")list=list.filter(function(d){return d.t==="valid"});
+  document.getElementById("rc2").textContent="顯示 "+list.length+" / "+D.length+" 筆";
+  var h="";list.forEach(function(r){h+='<tr><td style="font-weight:500">'+r.n+'</td><td>'+r.d+'</td><td><span class="tg '+TC[r.t]+'">'+TL[r.t]+'</span></td><td>'+(r.m||'<span style="color:#ff6b6b">—</span>')+'</td><td>'+(r.e||"—")+'</td><td>'+(r.o||"—")+'</td><td style="text-align:center">'+r.s+'%</td></tr>'});
+  document.getElementById("tb2").innerHTML=h;
+}
+document.getElementById("sq").addEventListener("input",renderTable);
+document.getElementById("ft").addEventListener("change",renderTable);
+document.getElementById("fv").addEventListener("change",renderTable);
+renderTable();
+
+// ===== TRACKING =====
+function renderTrack(){
+  var cn={};STS.forEach(function(s){cn[s.k]=0});ts.forEach(function(c){cn[c.st]=(cn[c.st]||0)+1});
+  var fl=trackFilt==="all"?ts:ts.filter(function(c){return c.st===trackFilt});
+  var fh='<div class="mc">';
+  fh+='<button class="'+(trackFilt==="all"?"on":"")+'" data-tf="all">全部 ('+ts.length+')</button>';
+  STS.forEach(function(s){fh+='<button class="'+(trackFilt===s.k?"on":"")+'" data-tf="'+s.k+'">'+s.l+' ('+(cn[s.k]||0)+')</button>'});
+  fh+='</div><div id="tlst"></div>';
+  document.getElementById("pTrack").innerHTML=fh;
+  // Filter buttons
+  document.querySelectorAll("#pTrack .mc button").forEach(function(btn){
+    btn.addEventListener("click",function(){trackFilt=this.getAttribute("data-tf");renderTrack()});
+  });
+  // Track list
+  var h="";
+  fl.forEach(function(c){
+    var isOpen=openId===c.id;var col=SC[c.st]||"#888";
+    h+='<div class="tri" style="border-left:3px solid '+col+'" data-tid="'+c.id+'">';
+    h+='<div class="trh"><div><span class="trn">'+c.n+'</span><span class="trm">'+c.d+'</span>'+(c.e?'<span class="trm">到期 '+c.e+'</span>':'')+'</div>';
+    h+='<div style="display:flex;align-items:center;gap:6px"><span class="tg" style="background:'+col+'18;color:'+col+'">'+SL[c.st]+'</span><button class="eb">'+(isOpen?"收合":"編輯")+'</button></div></div>';
+    if(isOpen){
+      h+='<div class="trb">';
+      h+='<div><label>處理狀態</label><select data-f="st">';STS.forEach(function(s){h+='<option value="'+s.k+'"'+(c.st===s.k?" selected":"")+'>'+s.l+'</option>'});h+='</select></div>';
+      h+='<div><label>發函日期</label><input type="date" value="'+c.nd+'" data-f="nd"></div>';
+      h+='<div><label>改善期限</label><input type="date" value="'+c.dl+'" data-f="dl"></div>';
+      h+='<div><label>複查結果</label><select data-f="cr"><option value="">尚未複查</option><option'+(c.cr==="已重新申請登記證"?" selected":"")+'>已重新申請登記證</option><option'+(c.cr==="已停止違規營業"?" selected":"")+'>已停止違規營業</option><option'+(c.cr==="仍持續違規營業"?" selected":"")+'>仍持續違規營業</option><option'+(c.cr==="部分改善"?" selected":"")+'>部分改善</option></select></div>';
+      h+='<div><label>開罰日期</label><input type="date" value="'+c.fd+'" data-f="fd"></div>';
+      h+='<div><label>罰款金額</label><input type="text" value="'+c.amt+'" placeholder="例：50,000" data-f="amt"></div>';
+      h+='<div><label>處理人</label><input type="text" value="'+c.hd+'" data-f="hd"></div><div></div>';
+      h+='<div class="trf"><label>備註</label><textarea data-f="nt">'+c.nt+'</textarea></div></div>';
+    }
+    h+='</div>';
+  });
+  document.getElementById("tlst").innerHTML=h;
+  // Bind
+  document.querySelectorAll(".tri .trh").forEach(function(el){
+    el.addEventListener("click",function(){var tid=parseInt(this.closest(".tri").getAttribute("data-tid"));openId=openId===tid?null:tid;renderTrack()});
+  });
+  document.querySelectorAll(".trb input,.trb select,.trb textarea").forEach(function(el){
+    el.addEventListener("change",function(){var tid=parseInt(this.closest(".tri").getAttribute("data-tid"));var f=this.getAttribute("data-f");var v=this.value;ts.forEach(function(c){if(c.id===tid)c[f]=v})});
+  });
+}
+renderTrack();
+
+// ===== SOP =====
+var sopH='<div class="crd">';
+sopH+='<div class="sph" style="border-left:3px solid #00d4aa">Phase A — 每週掃描比對</div>';
+[["A1","匯出最新 Excel","從台北市停車管理系統匯出「停車場完整資訊匯出.xlsx」","#00d4aa"],["A2","擷取 USPACE 清單","Claude in Chrome 自動瀏覽 pass.uspace.city 台北市 12 區頁面","#00d4aa"],["A3","執行比對","名稱+地址+行政區模糊比對，分為「未登記」「已過期」「即將到期」「合規」","#00d4aa"],["A4","人工複查","確認配對分數低於 45 的項目","#00d4aa"]].forEach(function(s){sopH+='<div class="sst"><span class="ssl" style="color:'+s[3]+'">'+s[0]+'</span><div><b>'+s[1]+'</b> — '+s[2]+'</div></div>'});
+sopH+='<div class="sph" style="border-left:3px solid #ffc107">Phase B — 違規處理</div>';
+[["B1","發公文","限期重新申請停車場登記證或停止違規營業","#ffc107"],["B2","等待期間監控","每週重新掃描觀察是否改善","#ffc107"],["B3","期限到期檢查","確認已重新申請/已停止營業/仍持續違規","#ffc107"],["B4","開罰","對仍未改善者進行正式裁罰","#ffc107"]].forEach(function(s){sopH+='<div class="sst"><span class="ssl" style="color:'+s[3]+'">'+s[0]+'</span><div><b>'+s[1]+'</b> — '+s[2]+'</div></div>'});
+sopH+='<div class="sph" style="border-left:3px solid #3fb950">Phase C — 結案歸檔</div>';
+[["C1","結案標記","已重新申請/已停止營業/已繳罰款","#3fb950"],["C2","週報歸檔","每週比對結果存檔標註週次","#3fb950"],["C3","趨勢分析","新增違規/已解決/累犯比較","#3fb950"]].forEach(function(s){sopH+='<div class="sst"><span class="ssl" style="color:'+s[3]+'">'+s[0]+'</span><div><b>'+s[1]+'</b> — '+s[2]+'</div></div>'});
+sopH+='<div class="inb"><b>處理狀態流程：</b>新案件 → 已發函 → 等待期限中 → 已重新申請／已停止營業／已開罰 → 罰款後監控中</div></div>';
+document.getElementById("pSop").innerHTML=sopH;
+
+// ===== PRINT =====
+document.getElementById("printBtn").addEventListener("click",function(){
+  var exList=D.filter(function(d){return d.t==="expired"});
+  var cn={};STS.forEach(function(s){cn[s.k]=0});ts.forEach(function(c){cn[c.st]=(cn[c.st]||0)+1});
+  var ph='<h2 style="text-align:center;font-size:18px;margin-bottom:2px">USPACE 違規停車場週報</h2>';
+  ph+='<div style="text-align:center;font-size:12px;color:#8b949e;margin-bottom:16px">2026-W14 | 擷取日期 2026/04/04 | 台北市交通局停車管理科</div>';
+  ph+='<div class="g4" style="margin-bottom:12px"><div class="kpi k1"><div class="lb">違規停車場</div><div class="nm" style="font-size:20px">'+vio.length+'</div></div><div class="kpi k2"><div class="lb">違規率</div><div class="nm" style="font-size:20px">'+Math.round(vio.length/D.length*100)+'%</div></div><div class="kpi k3"><div class="lb">本週新增</div><div class="nm" style="font-size:20px">'+vio.length+'</div></div><div class="kpi k4"><div class="lb">已改善</div><div class="nm" style="font-size:20px">0</div></div></div>';
+  ph+='<h3 style="font-size:14px;margin:12px 0 6px">行政區違規排行 Top 5</h3>';
+  ph+='<table><thead><tr><th>行政區</th><th>違規</th><th>場站</th><th>違規率</th></tr></thead><tbody>';
+  ds.slice(0,5).forEach(function(d){var rate=Math.round(d[1].v/(d[1].v+d[1].ok)*100);ph+='<tr><td>'+d[0]+'</td><td style="color:#ff6b6b;font-weight:500">'+d[1].v+'</td><td>'+(d[1].v+d[1].ok)+'</td><td>'+rate+'%</td></tr>'});
+  ph+='</tbody></table>';
+  ph+='<h3 style="font-size:14px;margin:12px 0 6px">需立即處理 — 登記證已過期</h3>';
+  ph+='<table><thead><tr><th>USPACE 名稱</th><th>行政區</th><th>登記名稱</th><th>到期日</th><th>經營者</th></tr></thead><tbody>';
+  exList.forEach(function(r){ph+='<tr><td style="font-weight:500">'+r.n+'</td><td>'+r.d+'</td><td>'+r.m+'</td><td>'+r.e+'</td><td>'+r.o+'</td></tr>'});
+  ph+='</tbody></table>';
+  ph+='<h3 style="font-size:14px;margin:12px 0 6px">追蹤進度摘要</h3><div style="font-size:12px">';
+  STS.forEach(function(s){ph+='<span style="display:inline-block;margin-right:14px"><span class="tg" style="background:'+s.c+'22;color:'+s.c+'">'+s.l+'</span> '+(cn[s.k]||0)+' 件</span>'});
+  ph+='</div>';
+  ph+='<div style="text-align:center;margin-top:20px;font-size:10px;color:#6e7681;border-top:1px solid #30363d;padding-top:8px">本報告由 USPACE 違規停車場管理系統自動產生</div>';
+  document.getElementById("printArea").innerHTML=ph;
+  setTimeout(function(){window.print()},200);
+});
+
+</script>
+</body>
+</html>
